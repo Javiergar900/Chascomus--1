@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa con Calles Seleccionables y Cuestionario</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #map {
+            height: 50%;
+            width: 100%;
+            position: relative;
+        }
+        
+        #segmento-seleccionado {
+            display: none; /* Ocultar inicialmente */
+            margin-top: 10px;
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .form-container {
+            width: 100%;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #e8f7ff;
+            overflow-y: auto;
+            margin-top: 20px;
+            height: 50%;
+            display: none; /* Ocultar todos los formularios inicialmente */
+        }
+
+        .form-container.activo {
+            display: block; /* Mostrar solo el formulario activo */
+        }
+
+        h3 {
+            color: #007BFF;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #007BFF;
+            font-size: 0.9em;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:active {
+            background-color: #003f7f;
+        }
+
+        @media (max-width: 768px) {
+            #map {
+                height: 40%;
+            }
+
+            .form-container {
+                margin-top: 20px;
+                padding: 15px;
+                height: 60%;
+            }
+
+            h3 {
+                font-size: 1.2em;
+            }
+
+            label {
+                font-size: 1em;
+            }
+
+            input[type="text"], input[type="number"], textarea, select {
+                font-size: 1em;
+                padding: 10px;
+            }
+
+            button {
+                font-size: 1.1em;
+        
+            }#segmento-seleccionado {
+                margin-top: 20px;
+                display: none; /* Ocultar inicialmente */
+                margin-top: 10px;
+                background-color: #28a745;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                text-align: center;
+            }    
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div id="segmento-seleccionado">¡Has seleccionado un segmento!</div>
+
+    <!-- Formulario A -->
+    <div id="formA" class="form-container activo">
+        <h3>A. Infraestructura Urbana</h3>
+        <form id="questionnaire-formA">
+            <label for="line-id">ID de la línea:</label>
+            <input type="text" id="line-id" readonly><br>
+
+            <label for="refugios">A.1 Cantidad de refugios / paradas de colectivos:</label>
+            <input type="number" id="refugios" placeholder="Escribe un número..."><br>
+
+            <label for="refugios-vandalizadas">A.2 Cantidad de refugios / paradas de colectivos vandalizadas:</label>
+            <input type="number" id="refugios-vandalizadas" placeholder="Escribe un número..."><br>
+
+            <label for="puentes">A.3 Cantidad de puentes:</label>
+            <input type="number" id="puentes" placeholder="Escribe un número..."><br>
+
+            <label for="puentes-peatonales">A.4 Cantidad de puentes peatonales:</label>
+            <input type="number" id="puentes-peatonales" placeholder="Escribe un número..."><br>
+
+            <label for="badenes">A.5 Cantidad de badenes / lomas de burro:</label>
+            <input type="number" id="badenes" placeholder="Escribe un número..."><br>
+
+            <label for="badenes-deteriorados">A.6 Cantidad de badenes / lomas de burro deteriorados:</label>
+            <input type="number" id="badenes-deteriorados" placeholder="Escribe un número..."><br>
+
+            <label for="luminarias-led">A.7 Cantidad de luminarias led:</label>
+            <input type="number" id="luminarias-led" placeholder="Escribe un número..."><br>
+
+            <label for="luminarias-led-no-funcionando">A.8 Cantidad de luminarias led sin funcionamiento:</label>
+            <input type="number" id="luminarias-led-no-funcionando" placeholder="Escribe un número..."><br>
+
+            <label for="luminarias-convencionales">A.9 Cantidad de luminarias convencionales:</label>
+            <input type="number" id="luminarias-convencionales" placeholder="Escribe un número..."><br>
+
+            <label for="luminarias-convencionales-no-funcionando">A.10 Cantidad de luminarias convencionales sin funcionamiento:</label>
+            <input type="number" id="luminarias-convencionales-no-funcionando" placeholder="Escribe un número..."><br>
+
+            <label for="cordon-asfalto">A.11 Calle con cordón y asfalto (Si / No):</label>
+            <select id="cordon-asfalto">
+                <option value="" disabled selected> Selecciona una opcion</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <label for="solo-asfalto">A.12 Calle solo con asfalto (Si / No):</label>
+            <select id="solo-asfalto">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <label for="mejorado">A.13 Calle con mejorado (Si / No):</label>
+            <select id="mejorado">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <label for="zanja">A.14 Calle con zanja (Si / No):</label>
+            <select id="zanja">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <label for="baches">A.15 Calle con baches o deterioradas (Si / No):</label>
+            <select id="baches">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <label for="edificaciones">A.16 Calle con edificaciones ajustadas a la línea municipal (Si / No):</label>
+            <select id="edificaciones">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <label for="estado-vereda">A.17 Estado de la vereda (transitable / poco transitable / nada transitable):</label>
+            <select id="estado-vereda">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="transitable">Transitable</option>
+                <option value="poco transitable">Poco transitable</option>
+                <option value="nada transitable">Nada transitable</option>
+            </select><br>
+
+            <button type="button" onclick="mostrarFormulario('formB')">Continuar</button>
+        </form>
+    </div>
+
+    <!-- Formulario B -->
+    <div id="formB" class="form-container">
+        <h3>B. Uso y ocupación del espacio público y privado</h3>
+        <label for="terrenos-sin-construcciones">B.1 Cantidad de terrenos sin construcciones o descampados:</label>
+        <input type="number" id="terrenos-sin-construcciones" placeholder="Escribe un número..."><br>
+
+        <label for="casas-abandonadas">B.2 Cantidad de casas / construcciones abandonadas:</label>
+        <input type="number" id="casas-abandonadas" placeholder="Escribe un número..."><br>
+
+        <label for="basurales">B.3 Cantidad de basurales:</label>
+        <input type="number" id="basurales" placeholder="Escribe un número..."><br>
+
+        <label for="vehiculos-abandono">B.4 Cantidad de vehículos en estado de abandono y/o quemados:</label>
+        <input type="number" id="vehiculos-abandono" placeholder="Escribe un número..."><br>
+
+        <label for="grafitis">B.5 Cantidad de frentes con grafitis o vandalizaciones:</label>
+        <input type="number" id="grafitis" placeholder="Escribe un número..."><br>
+
+        <label for="espacios-recreativos">B.6 Cantidad de plazas, parques y/o espacios destinados al uso recreativo:</label>
+        <input type="number" id="espacios-recreativos" placeholder="Escribe un número..."><br>
+
+        <label for="espacios-vandalizados">B.7 Cantidad de plazas, parques y/o espacios destinados al uso recreativo vandalizados:</label>
+        <input type="number" id="espacios-vandalizados" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formC')">Continuar</button>
+        </form>
+    </div>
+
+    <!-- Formulario C -->
+    <div id="formC" class="form-container">
+        <h3>C. Capilaridad Social</h3>
+        <form id="questionnaire-formC">
+            <label for="instituciones">C.1 Club / Instituciones / Sociedades de Fomento (cantidad por calle):</label>
+            <input type="number" id="instituciones" placeholder="Escribe un número..."><br>
+
+            <label for="Merenderos">C.2 Merenderos / Comedores (cantidad por calle):</label>
+            <input type="number" id="Merenderos" placeholder="Escribe un número..."><br>
+
+            <label for="Iglesias">C.3 Iglesias - Parroquias (cantidad por calle):</label>
+            <input type="number" id="Iglesias" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formD')">Continuar</button>
+        </form>
+    </div>
+
+    <!-- Formulario D -->
+    <div id="formD" class="form-container">
+        <h3>D. Capilaridad Estatal</h3>
+        <form id="questionnaire-formD">
+            <label for="cantidad-lineas">D.1 Agencias / organismos estatales (cantidad por calle):</label>
+            <input type="number" id="cantidad-lineas" placeholder="Escribe un número..."><br>
+
+            <label for="Comisarias-destacamentos">D.2 Cantidad de comisarías / Destacamentos / Puestos de policía por calle:</label>
+            <input type="number" id="Comisarias-destacamentos" placeholder="Escribe un número..."><br>
+
+            <label for="Establecimientos-educativos">D.3 Cantidad de establecimientos educativos estatales y privados por calle:</label>
+            <input type="number" id="Establecimientos-educativos" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formE')">Continuar</button>
+        </form>
+    </div>
+
+    <!-- Formulario E -->
+    <div id="formE" class="form-container">
+        <h3>E. Accesibilidad de transporte urbano y movilidad</h3>
+        <form id="questionnaire-formE">
+            <label for="lineas-colectivo">E.1 Cantidad de líneas de colectivo y ramales:</label>
+            <input type="number" id="lineas-colectivo" placeholder="Escribe un número..."><br>
+
+            <label for="semaforos">E.2 Cantidad de semáforos:</label>
+            <input type="number" id="semaforos" placeholder="Escribe un número..."><br>
+
+            <label for="sendas">E.3 Cantidad de calles con sendas peatonales:</label>
+            <input type="number" id="sendas" placeholder="Escribe un número..."><br>
+
+            <label for="calles-señaletica">E.4 Cantidad de calles con señalética relacionada a normas de tránsito:</label>
+            <input type="number" id="calles-señaletica" placeholder="Escribe un número..."><br>
+
+            <label for="señaletica-relacionada">E.5 Cantidad de calles con señalética relacionada con la ubicación y la altura:</label>
+            <input type="number" id="señaletica-relacionada" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formF')">Continuar</button>
+        </form>
+    </div>
+
+    <!-- Formulario F -->
+    <div id="formF" class="form-container">
+        <h3>F. Arbolado y paisaje urbano</h3>
+        <form id="questionnaire-formF">
+            <label for="arboles-calle">F.1 Cantidad de árboles por calle:</label>
+            <input type="number" id="arboles-calle" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formG')">Continuar</button>
+        </form>
+    </div>
+    
+
+    <!-- Formulario G -->
+    <div id="formG" class="form-container">
+        <h3>G. Dispositivos de Seguridad</h3>
+        <form id="questionnaire-formG">
+            <label for="camara-privada">G.1 Cantidad de cámaras de videovigilancia privadas:</label>
+            <input type="number" id="camara-privada" placeholder="Escribe un número..."><br>
+
+            <label for="camara-publica">G.2 Cantidad de cámaras de videovigilancia públicas:</label>
+            <input type="number" id="camara-publica" placeholder="Escribe un número..."><br>
+
+            <label for="casetas">G.3 Cantidad de casetas municipales por calle:</label>
+            <input type="number" id="casetas" placeholder="Escribe un número..."><br>
+
+            <label for="puestos">G.4 Cantidad de puestos policiales por calle:</label>
+            <input type="number" id="puestos" placeholder="Escribe un número..."><br>
+
+            <label for="alarmas-comunitarias">G.5 Cantidad de Alarmas Comunitarias:</label>
+            <input type="number" id="alarmas-comunitarias" placeholder="Escribe un número..."><br>
+
+            <label for="cercos-electricos">G.6 Cantidad de Cercos Eléctricos:</label>
+            <input type="number" id="cercos-electricos" placeholder="Escribe un número..."><br>
+
+            <label for="carteles-monitoreo">G.7 Cantidad de Carteles de Monitoreo de Empresas de Seguridad:</label>
+            <input type="number" id="carteles-monitoreo" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formH')">Continuar</button>
+        </form>
+    </div>
+    
+    <!-- Formulario H -->
+    <div id="formH" class="form-container">
+        <h3>H. Actividad comercial, industrial y financiera</h3>
+        <form id="questionnaire-formH">
+            <label for="venta-alimentos">H.1 Cantidad de comercios de venta de alimentos, indumentaria,tecnología / electrodomésticos:</label>
+            <input type="number" id="venta-alimentos" placeholder="Escribe un número..."><br>
+
+            <label for="servicios-personales">H.2 Cantidad comercios de venta de servicios personales (peluquerías, barberías, gimnasios, farmacias etc):</label>
+            <input type="number" id="servicios-personales" placeholder="Escribe un número..."><br>
+
+            <label for="talleres">H.3 Cantidad de talleres mecánicos:</label>
+            <input type="number" id="talleres" placeholder="Escribe un número..."><br>
+
+            <label for="fabricas">H.4 Cantidad de fábricas y/o establecimientos industriales:</label>
+            <input type="number" id="fabricas" placeholder="Escribe un número..."><br>
+
+            <label for="otros-rubros">H.5 Cantidad comercios de venta de otros rubros:</label>
+            <input type="number" id="otros-rubros" placeholder="Escribe un número..."><br>
+
+            <label for="bancos">H.6 Cantidad de bancos y cajeros:</label>
+            <input type="number" id="bancos" placeholder="Escribe un número..."><br>
+
+            <label for="financieros">H.7 Cantidad de locales financieros:</label>
+            <input type="number" id="financieros" placeholder="Escribe un número..."><br>
+
+            <label for="ambulante">H.8 Cantidad de puestos de venta ambulante informal o ilegal:</label>
+            <input type="number" id="ambulante" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formI')">Continuar</button>
+        </form>
+    </div>
+    
+    <!-- Formulario I -->
+    <div id="formI" class="form-container">
+        <h3>I. Conexión y Servicios de Internet</h3>
+        <form id="questionnaire-formI">
+            <label for="antenas">I.1 Cantidad de antenas de telefonía celular:</label>
+            <input type="number" id="antenas" placeholder="Escribe un número..."><br>
+
+            <button type="button" onclick="mostrarFormulario('formJ')">Continuar</button>
+        </form>
+    </div>    
+
+    <!-- Formulario J -->
+    <div id="formJ" class="form-container">
+        <h3>J. Contaminación ambiental</h3>
+        <form id="questionnaire-formJ">
+            <label for="agua">J.1 Cursos de agua cercanos:</label>
+            <input type="number" id="agua" placeholder="Escribe un número..."><br>
+
+            <label for="auditiva">Contaminación Auditiva </label>
+            <select id="auditiva">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+
+            <label for="olor">Contaminación Auditiva </label>
+            <select id="olor">
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select><br>
+
+            <button type="submit">Finalizar</button>
+        </form>
+    </div>
+    
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
+    <script>
+        // Configuración del mapa
+        var map = L.map('map').setView([-34.9461, -57.8846], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+fetch('./pj.geojson')
+    .then(response => response.json())
+    .then(data => {
+        var pjLayer = L.geoJSON(data, {
+            style: {
+                color: 'green',
+                weight: 4
+            },
+            onEachFeature: function (feature, layer) {
+                var lineId = feature.properties.ID || 'Sin ID';
+
+                layer.on('click', function () {
+                    // Actualizar el campo "line-id"
+                    document.getElementById('line-id').value = lineId;
+
+                    // Mostrar el botón de confirmación
+                    document.getElementById('segmento-seleccionado').style.display = 'block';
+                });
+            }
+        }).addTo(map);
+    })
+    .catch(error => console.error('Error cargando pj.geojson:', error));
+
+        L.control.locate({
+            position: 'topright',
+            strings: { title: "Ver mi ubicación" },
+            locateOptions: { enableHighAccuracy: true },
+            trackUserLocation: true,
+            keepCurrentZoomLevel: true,
+            zoomToAccuracy: true,
+        }).addTo(map);
+
+        // Función para mostrar el siguiente formulario
+        function mostrarFormulario(idFormulario) {
+            // Ocultar todos los formularios
+            document.querySelectorAll('.form-container').forEach(form => {
+                form.classList.remove('activo');
+            });
+
+            // Mostrar el formulario solicitado
+            document.getElementById(idFormulario).classList.add('activo');
+        }
+        
+        
+        // Lógica para manejar el botón "Finalizar"
+        document.getElementById('questionnaire-formJ').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            let currentDate = new Date();
+            let formattedDate = currentDate.toLocaleString(); // Esto formatea la fecha y hora
+
+            // Obtener todos los datos de los formularios
+            const datos = {
+                segmento: document.getElementById('line-id').value,
+                A1: document.getElementById('refugios').value,
+                A2: document.getElementById('refugios-vandalizadas').value,
+                A3: document.getElementById('puentes').value,
+                A4: document.getElementById('puentes-peatonales').value,
+                A5: document.getElementById('badenes').value,
+                A6: document.getElementById('badenes-deteriorados').value,
+                A7: document.getElementById('luminarias-led').value,
+                A8: document.getElementById('luminarias-led-no-funcionando').value,
+                A9: document.getElementById('luminarias-convencionales').value,
+                A10: document.getElementById('luminarias-convencionales-no-funcionando').value,
+                A11: document.getElementById('cordon-asfalto').value,
+                A12: document.getElementById('solo-asfalto').value,
+                A13: document.getElementById('mejorado').value,
+                A14: document.getElementById('zanja').value,
+                A15: document.getElementById('baches').value,
+                A16: document.getElementById('edificaciones').value,
+                A17: document.getElementById('estado-vereda').value,
+                B1: document.getElementById('terrenos-sin-construcciones').value,
+                B2: document.getElementById('casas-abandonadas').value,
+                B3: document.getElementById('basurales').value,
+                B4: document.getElementById('vehiculos-abandono').value,
+                B5: document.getElementById('grafitis').value,
+                B6: document.getElementById('espacios-recreativos').value,
+                B7: document.getElementById('espacios-vandalizados').value,
+                C1: document.getElementById('instituciones').value,
+                C2: document.getElementById('Merenderos').value,
+                C3: document.getElementById('Iglesias').value,
+                D1: document.getElementById('cantidad-lineas').value,
+                D2: document.getElementById('Comisarias-destacamentos').value,
+                D3: document.getElementById('Establecimientos-educativos').value,
+                E1: document.getElementById('lineas-colectivo').value,
+                E2: document.getElementById('semaforos').value,
+                E3: document.getElementById('sendas').value,
+                E4: document.getElementById('calles-señaletica').value,
+                E5: document.getElementById('señaletica-relacionada').value,
+                F1: document.getElementById('arboles-calle').value,
+                G1: document.getElementById('camara-privada').value,
+                G2: document.getElementById('camara-publica').value,
+                G3: document.getElementById('casetas').value,
+                G4: document.getElementById('puestos').value,
+                H1: document.getElementById('venta-alimentos').value,
+                H2: document.getElementById('servicios-personales').value,
+                H3: document.getElementById('talleres').value,
+                H4: document.getElementById('fabricas').value,
+                H5: document.getElementById('otros-rubros').value,
+                H6: document.getElementById('bancos').value,
+                H7: document.getElementById('financieros').value,
+                H8: document.getElementById('ambulante').value,
+                I1: document.getElementById('antenas').value,
+                J1: document.getElementById('agua').value,
+                J2: document.getElementById('auditiva').value,
+                J3: document.getElementById('olor').value,
+                G5: document.getElementById('alarmas-comunitarias').value,
+                G6: document.getElementById('cercos-electricos').value,
+                G7: document.getElementById('carteles-monitoreo').value,
+                fecha: formattedDate // Agregar la fecha y hora aquí
+            };
+
+            // Enviar los datos a la API de Sheet Best
+            const endpoint = 'https://api.sheetbest.com/sheets/71bc6130-4e8c-4728-84df-d4e66b6218ec';
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datos)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Datos enviados con éxito:', data);
+                alert('Formulario completado y datos enviados.');
+            })
+            .catch(error => console.error('Error al enviar los datos:', error));
+        });
+    </script>
+</body>
+</html>
