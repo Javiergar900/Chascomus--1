@@ -435,13 +435,13 @@
     <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
     <script>
         // Configuración del mapa
-        var map = L.map('map').setView([-35.5714, 58.0072], 13);
+        var map = L.map('map').setView([-34.9461, -57.8846], 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-fetch('./pj.geojson')
+fetch('./chascomus-segmentos.geojson')
     .then(response => response.json())
     .then(data => {
         var pjLayer = L.geoJSON(data, {
@@ -462,7 +462,7 @@ fetch('./pj.geojson')
             }
         }).addTo(map);
     })
-    .catch(error => console.error('Error cargando pj.geojson:', error));
+    .catch(error => console.error('Error cargando chascomus-segmentos.geojson:', error));
 
         L.control.locate({
             position: 'topright',
